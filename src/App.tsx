@@ -1,24 +1,43 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import React, { useEffect, useState } from 'react';
+import './App.scss';
+import { TopSide } from './components/top-side';
+import { BottomSide } from './components/bottom-side';
+import { Loader } from './components/loader';
+import { Api } from './services/api.service';
 
 function App() {
+  const [epoch, setEpoch] = useState<number>(0);
+  const [metrics, setMetrics] = useState<string>('');
+  const [loader, showLoader] = useState<boolean>(true);
+
+  const fetchData = () => {
+    showLoader(true);
+
+    Promise.all([Api.getTime(), Api.getMetrics()])
+      .then(([time, metrics]) => {
+        setEpoch(time);
+        setMetrics(metrics);
+      })
+      .catch((err) => {
+        console.log('Got some errors: ', err);
+      })
+      .finally(() => showLoader(false));
+  };
+
+  useEffect(() => {
+    fetchData();
+
+    const updateInterval = setInterval(() => {
+      fetchData();
+    }, 5 * 1000);
+
+    return () => clearInterval(updateInterval);
+  }, []);
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div className="Layout">
+      <Loader visibility={loader} />
+      <TopSide updateData={epoch} />
+      <BottomSide updateData={metrics} />
     </div>
   );
 }
